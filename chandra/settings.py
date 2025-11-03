@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     TORCH_DEVICE: str | None = None
     MAX_OUTPUT_TOKENS: int = 12384
     TORCH_ATTN: str | None = None
+    # Allow overriding dtype via environment variable; defaults to bfloat16
+    TORCH_DTYPE_NAME: str = "bfloat16"
 
     # vLLM server settings
     VLLM_API_KEY: str = "EMPTY"
@@ -26,6 +28,14 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def TORCH_DTYPE(self) -> torch.dtype:
+        name = (self.TORCH_DTYPE_NAME or "bfloat16").lower()
+        if name in {"bf16", "bfloat16"}:
+            return torch.bfloat16
+        if name in {"fp16", "float16", "half"}:
+            return torch.float16
+        if name in {"fp32", "float32", "f32"}:
+            return torch.float32
+        # Fallback to bfloat16 if unrecognized
         return torch.bfloat16
 
     class Config:

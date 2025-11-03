@@ -151,11 +151,23 @@ Settings can be configured via environment variables or a `local.env` file:
 # Model settings
 MODEL_CHECKPOINT=datalab-to/chandra
 MAX_OUTPUT_TOKENS=8192
+# Force device selection (optional). Use `cpu` to run on CPU, otherwise the app
+# will use CUDA when available and fall back to CPU.
+TORCH_DEVICE=
+# Override dtype if needed: bfloat16 (default), float16, or float32. On CPU,
+# float32 is recommended for stability.
+TORCH_DTYPE_NAME=bfloat16
 
 # vLLM settings
 VLLM_API_BASE=http://localhost:8000/v1
 VLLM_MODEL_NAME=chandra
 VLLM_GPUS=0
+```
+
+Quick tip (Windows PowerShell): to run on CPU for a single command, you can do
+
+```powershell
+$env:TORCH_DEVICE = 'cpu'; chandra input.pdf .\output --method hf
 ```
 
 # Commercial usage

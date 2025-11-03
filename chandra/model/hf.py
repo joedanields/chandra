@@ -2,11 +2,19 @@ from typing import List
 
 from qwen_vl_utils import process_vision_info
 from transformers import Qwen3VLForConditionalGeneration, Qwen3VLProcessor
+import torch
 
 from chandra.model.schema import BatchInputItem, GenerationResult
 from chandra.model.util import scale_to_fit
 from chandra.prompts import PROMPT_MAPPING
 from chandra.settings import settings
+
+
+# Small helper to choose the target device consistently across this module
+def _get_target_device() -> str:
+    if settings.TORCH_DEVICE:
+        return settings.TORCH_DEVICE
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def generate_hf(
@@ -28,7 +36,8 @@ def generate_hf(
         return_tensors="pt",
         padding_side="left",
     )
-    inputs = inputs.to("cuda")
+    # Move inputs to the appropriate device with a safe CPU fallback.~
+    inputs = inputs.to(_get_target_device())
 
     # Inference: Generation of the output
     generated_ids = model.generate(**inputs, max_new_tokens=max_output_tokens)
@@ -69,8 +78,14 @@ def load_model():
     if settings.TORCH_DEVICE:
         device_map = {"": settings.TORCH_DEVICE}
 
+    # Choose an appropriate dtype. On CPU, float32 is the safest choice.
+    target_device = _get_target_device()
+    dtype = settings.TORCH_DTYPE
+    if target_device == "cpu" and dtype != torch.float32:
+        dtype = torch.float32
+
     kwargs = {
-        "dtype": settings.TORCH_DTYPE,
+        "dtype": dtype,
         "device_map": device_map,
     }
     if settings.TORCH_ATTN:
